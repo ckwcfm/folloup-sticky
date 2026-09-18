@@ -86,8 +86,22 @@ std::mutex s_summary_feedback_mutex;
 bool s_summary_feedback_seen = false;
 uint32_t s_last_summary_feedback_generation = 0;
 
+// UP, DOWN and FN are silent keys: UI feedback raised while the input task handles one of
+// their events is dropped. Scoped to that task so cues from other tasks still play.
+std::atomic<TaskHandle_t> s_silent_key_task = nullptr;
+
+bool IsSilentKey(button_service::ButtonId button)
+{
+    return button == button_service::ButtonId::kUp ||
+           button == button_service::ButtonId::kDown ||
+           button == button_service::ButtonId::kFunction;
+}
+
 void PlayFeedback(feedback_service::FeedbackEvent event)
 {
+    if (s_silent_key_task.load() == xTaskGetCurrentTaskHandle()) {
+        return;
+    }
     (void)feedback_service::Play(event);
 }
 
@@ -1239,6 +1253,16 @@ void HandleWifiEvent(const wifi_service::Event& event, void*)
 
 void HandleDispatchedButtonEvent(const button_service::ButtonEventInfo& event)
 {
+    struct SilentKeyScope {
+        explicit SilentKeyScope(bool silent)
+        {
+            if (silent) {
+                s_silent_key_task.store(xTaskGetCurrentTaskHandle());
+            }
+        }
+        ~SilentKeyScope() { s_silent_key_task.store(nullptr); }
+    } silent_key_scope(IsSilentKey(event.button));
+
     ESP_LOGI(kTag, "Button intent: button=%s event=%s pressed_ms=%lu",
              ButtonIdName(event.button), ButtonEventName(event.event),
              static_cast<unsigned long>(event.pressed_ms));
@@ -1748,7 +1772,6 @@ void Run()
         .button_handler = &HandleButtonEvent,
         .button_handler_context = nullptr,
     });
-    PlayFeedback(feedback_service::FeedbackEvent::kStartup);
     InitImuService();
     InitDeviceSleepRuntime();
     InitTimezoneService();
