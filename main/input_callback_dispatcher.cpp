@@ -15,7 +15,8 @@ namespace {
 
 constexpr const char* kTag = "InputDispatch";
 constexpr const char* kTaskName = "input_callbacks";
-constexpr uint32_t kTaskStackWords = 3072;
+// Button handlers run here, including recording arm/start; 3072 overflowed on a BOOT press.
+constexpr uint32_t kTaskStackWords = 4096;
 constexpr size_t kMaxPendingCallbacks = 64;
 
 struct PendingCallback {
