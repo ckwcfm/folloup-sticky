@@ -69,6 +69,12 @@ constexpr uint32_t kShutdownTaskStackWords = 3072;
 constexpr TickType_t kPowerButtonReleaseSettleDelay = pdMS_TO_TICKS(500);
 
 TaskHandle_t s_shutdown_task = nullptr;
+// Statically allocated for the same reason as the input dispatcher task (see
+// input_callback_dispatcher.cpp): by the time this runs, Wi-Fi/lwIP's async
+// setup has already made a dynamic allocation here a race against runtime
+// heap churn for the last scraps of internal RAM.
+StaticTask_t s_shutdown_task_buffer;
+StackType_t s_shutdown_task_stack[kShutdownTaskStackWords];
 std::atomic<bool> s_startup_complete = false;
 std::atomic<bool> s_gemini_ready = false;
 std::mutex s_recording_session_feedback_mutex;
@@ -1468,16 +1474,16 @@ void StartShutdownTask()
         return;
     }
 
-    const BaseType_t created = xTaskCreatePinnedToCore(
+    s_shutdown_task = xTaskCreateStaticPinnedToCore(
         ShutdownTask,
         "app_shutdown",
         kShutdownTaskStackWords,
         nullptr,
         followup_task_config::kPriorityAppShutdown,
-        &s_shutdown_task,
+        s_shutdown_task_stack,
+        &s_shutdown_task_buffer,
         followup_task_config::kAppCore);
-    if (created != pdPASS) {
-        s_shutdown_task = nullptr;
+    if (s_shutdown_task == nullptr) {
         ESP_LOGW(kTag, "Failed to create shutdown task");
     }
 }
