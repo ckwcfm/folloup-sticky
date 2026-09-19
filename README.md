@@ -1,5 +1,27 @@
 # Followup Product Introduction
 
+## About This Fork
+
+This fork provides a tested build for the **Waveshare ESP32-S3-ePaper-3.97**
+with **16 MB flash and 8 MB PSRAM**. It is based on the upstream
+[`folloup-waveshare`](https://github.com/alxv2016/folloup-sticky/tree/folloup-waveshare)
+port and includes additional fixes for the startup memory exhaustion described
+in [upstream issue #3](https://github.com/alxv2016/folloup-sticky/issues/3) and
+[upstream PR #4](https://github.com/alxv2016/folloup-sticky/pull/4).
+
+Differences from upstream include:
+
+- A 16 MB OTA partition layout for the Waveshare N16R8 board.
+- Static and PSRAM-backed worker stacks for memory-constrained services.
+- Reduced Wi-Fi internal-RAM use and PSRAM-backed TLS allocations.
+- A 32 KiB internal DMA reserve and size-optimized build configuration.
+- Hardware verification on a Waveshare ESP32-S3-ePaper-3.97.
+
+> **Important:** Do not flash the upstream `v0.01` release asset on this board.
+> That binary targets a different 32 MB device and will reboot after detecting
+> the Waveshare board's 16 MB flash. Build and flash the
+> `waveshare-16mb-fixed` branch instead.
+
 Followup is a place to capture your thoughts — whether it's an idea, a to-do, or just a note. Record what's on your mind at that light-bulb moment, before it slips away, and Followup helps you organize it afterward. With Gemini, your recordings are transcribed and summarized automatically. Everything is stored on your SD card.
 
 It runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32-S3-ePaper-3.97), so your thoughts live on a quiet, always-on screen you can place anywhere — a constant, low-interruption reminder instead of one more notification buried in your phone.
